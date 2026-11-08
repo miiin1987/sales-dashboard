@@ -20,6 +20,14 @@ function isValidAnalysisResult(val: unknown): val is { insights: string; actions
 }
 
 export async function POST(request: Request) {
+  // デモモード: Claude APIを一切呼び出さず403を返す
+  if (process.env.DEMO_MODE === 'true') {
+    return NextResponse.json(
+      { error: 'デモモードではAI分析は利用できません' },
+      { status: 403 }
+    );
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -60,7 +68,6 @@ export async function POST(request: Request) {
 
     const text = message.content[0].text;
 
-    // Extract the outermost JSON object (handles markdown code blocks)
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return NextResponse.json(
@@ -83,9 +90,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Normalize: ensure exactly 5 actions (pad or trim)
     const actions = parsed.actions.slice(0, 5);
-
     return NextResponse.json({ insights: parsed.insights, actions });
   } catch (err) {
     const errMsg = err instanceof Anthropic.APIError

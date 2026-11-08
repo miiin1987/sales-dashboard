@@ -4,12 +4,16 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { AggregatedData } from '@/lib/analytics/types';
+import { demoAggregatedData } from '@/lib/demo/aggregated-data';
 import { Card } from '@/components/ui/Card';
+import { DemoBanner } from '@/components/ui/DemoBanner';
 import { MetricCard } from './MetricCard';
 import { MonthlySalesChart } from './MonthlySalesChart';
 import { CategorySalesChart } from './CategorySalesChart';
 import { TopSkuTable } from './TopSkuTable';
 import { AiInsights } from './AiInsights';
+
+const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 function formatPeriod(start: string, end: string): string {
   const toJp = (d: string) => {
@@ -25,6 +29,11 @@ export function DashboardClient() {
   const [data, setData] = useState<AggregatedData | null>(null);
 
   useEffect(() => {
+    if (isDemoMode) {
+      setData(demoAggregatedData);
+      return;
+    }
+
     try {
       const raw = sessionStorage.getItem('dashboardData');
       if (!raw) {
@@ -61,14 +70,18 @@ export function DashboardClient() {
             </div>
             <span className="text-sm font-semibold tracking-wide text-white">COSMO SALES ANALYTICS</span>
           </div>
-          <Link
-            href="/"
-            className="rounded-lg border border-white/20 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/10"
-          >
-            新しいファイル
-          </Link>
+          {!isDemoMode && (
+            <Link
+              href="/"
+              className="rounded-lg border border-white/20 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-white/10"
+            >
+              新しいファイル
+            </Link>
+          )}
         </div>
       </header>
+
+      {isDemoMode && <DemoBanner />}
 
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6">
         {/* Period */}
@@ -77,6 +90,11 @@ export function DashboardClient() {
           <span className="font-medium text-brand-navy">
             {formatPeriod(period.start, period.end)}
           </span>
+          {isDemoMode && (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+              デモデータ
+            </span>
+          )}
         </div>
 
         {/* KPI Cards */}
@@ -104,24 +122,18 @@ export function DashboardClient() {
         {/* Charts Row */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
           <Card className="lg:col-span-3">
-            <h2 className="mb-4 text-sm font-semibold text-brand-navy">
-              月別売上推移
-            </h2>
+            <h2 className="mb-4 text-sm font-semibold text-brand-navy">月別売上推移</h2>
             <MonthlySalesChart data={data.monthly} />
           </Card>
           <Card className="lg:col-span-2">
-            <h2 className="mb-4 text-sm font-semibold text-brand-navy">
-              カテゴリ別売上
-            </h2>
+            <h2 className="mb-4 text-sm font-semibold text-brand-navy">カテゴリ別売上</h2>
             <CategorySalesChart data={data.byCategory} />
           </Card>
         </div>
 
         {/* SKU Table */}
         <Card>
-          <h2 className="mb-4 text-sm font-semibold text-brand-navy">
-            SKU別売上 TOP10
-          </h2>
+          <h2 className="mb-4 text-sm font-semibold text-brand-navy">SKU別売上 TOP10</h2>
           <TopSkuTable data={data.topSkus} />
         </Card>
 
@@ -133,7 +145,7 @@ export function DashboardClient() {
             </span>
             <h2 className="text-sm font-semibold text-brand-navy">AI分析レポート</h2>
           </div>
-          <AiInsights data={data} />
+          <AiInsights data={data} demoMode={isDemoMode} />
         </Card>
       </main>
     </div>

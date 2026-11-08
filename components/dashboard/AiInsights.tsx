@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Spinner } from '@/components/ui/Spinner';
+import { demoAnalysis } from '@/lib/demo/ai-analysis';
 import type { AggregatedData } from '@/lib/analytics/types';
 
 interface AnalysisResult {
@@ -13,13 +14,44 @@ type FetchState = 'loading' | 'done' | 'error';
 
 interface Props {
   data: AggregatedData;
+  demoMode?: boolean;
 }
 
-export function AiInsights({ data }: Props) {
-  const [state, setState] = useState<FetchState>('loading');
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+function AnalysisBody({ result }: { result: AnalysisResult }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="mb-2 text-sm font-semibold text-brand-navy">定量的な分析コメント</h3>
+        <p className="rounded-lg bg-brand-gray p-4 text-sm leading-relaxed text-gray-700">
+          {result.insights}
+        </p>
+      </div>
+      <div>
+        <h3 className="mb-3 text-sm font-semibold text-brand-navy">翌月の改善アクション提案</h3>
+        <ol className="space-y-2">
+          {result.actions.map((action, i) => (
+            <li key={i} className="flex items-start gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-navy text-xs font-bold text-white">
+                {i + 1}
+              </span>
+              <p className="pt-0.5 text-sm text-gray-700">{action}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
+  );
+}
+
+export function AiInsights({ data, demoMode = false }: Props) {
+  const [state, setState] = useState<FetchState>(demoMode ? 'done' : 'loading');
+  const [result, setResult] = useState<AnalysisResult | null>(
+    demoMode ? demoAnalysis : null
+  );
 
   useEffect(() => {
+    if (demoMode) return;
+
     let cancelled = false;
 
     async function fetchInsights() {
@@ -48,7 +80,7 @@ export function AiInsights({ data }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [data]);
+  }, [data, demoMode]);
 
   if (state === 'loading') {
     return (
@@ -73,29 +105,13 @@ export function AiInsights({ data }: Props) {
   if (!result) return null;
 
   return (
-    <div className="space-y-6">
-      {/* Insights */}
-      <div>
-        <h3 className="mb-2 text-sm font-semibold text-brand-navy">定量的な分析コメント</h3>
-        <p className="rounded-lg bg-brand-gray p-4 text-sm leading-relaxed text-gray-700">
-          {result.insights}
+    <div>
+      {demoMode && (
+        <p className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">
+          <span>⚠️</span> サンプル表示 · 実際のAI分析結果ではありません
         </p>
-      </div>
-
-      {/* Actions */}
-      <div>
-        <h3 className="mb-3 text-sm font-semibold text-brand-navy">翌月の改善アクション提案</h3>
-        <ol className="space-y-2">
-          {result.actions.map((action, i) => (
-            <li key={i} className="flex items-start gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-navy text-xs font-bold text-white">
-                {i + 1}
-              </span>
-              <p className="pt-0.5 text-sm text-gray-700">{action}</p>
-            </li>
-          ))}
-        </ol>
-      </div>
+      )}
+      <AnalysisBody result={result} />
     </div>
   );
 }
